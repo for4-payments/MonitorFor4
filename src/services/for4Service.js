@@ -1,6 +1,7 @@
 const axios = require('axios');
 const config = require('../config/config');
 const logger = require('../utils/logger');
+const performanceTracker = require('../utils/performanceTracker');
 const { generateTestData, formatCurrency } = require('../utils/dataGenerator');
 
 class For4Service {
@@ -91,7 +92,14 @@ class For4Service {
       
       // Validar resposta
       this.validatePixResponse(response.data);
-      console.log('resposta : ' + response.data)
+      
+      // Registrar performance
+      await performanceTracker.recordResponseTime(
+        response.responseTime,
+        true,
+        !!response.data.pixCode
+      );
+      
       return {
         success: true,
         data: response.data,
@@ -105,6 +113,15 @@ class For4Service {
         error: error.message,
         response: error.response?.data
       });
+      
+      // Registrar falha na performance
+      if (error.responseTime) {
+        await performanceTracker.recordResponseTime(
+          error.responseTime,
+          false,
+          false
+        );
+      }
       
       throw {
         ...error,
